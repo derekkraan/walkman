@@ -10,7 +10,8 @@ defmodule Walkman.MixProject do
       deps: deps(),
       package: package(),
       name: "Walkman",
-      source_url: "https://github.com/derekkraan/walkman"
+      source_url: "https://github.com/derekkraan/walkman",
+      elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
 
@@ -36,4 +37,8 @@ defmodule Walkman.MixProject do
       {:ex_doc, ">= 0.0.0", only: :dev}
     ]
   end
+
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end
