@@ -76,7 +76,7 @@ by adding `walkman` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:walkman, "~> 0.1.0"}
+    {:walkman, "~> 0.1.0", only: :test}
   ]
 end
 ```
