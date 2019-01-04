@@ -1,18 +1,83 @@
 defmodule Walkman do
   use GenServer
 
+  @moduledoc """
+  Walkman helps you isolate your tests from the outside world.
+
+  ## Getting started
+  ```elixir
+  # test/test_helper.exs
+  Walkman.start_link()
+  ```
+
+  ```elixir
+  # config/config.exs
+  config :my_app, my_module: MyModule
+  ```
+
+  Change references to `MyModule` in your application to `Application.get_env(:my_app, :my_module)`
+
+  ```elixir
+  # config/test.exs
+  config :my_app, my_module: MyModuleWrapper
+  ```
+
+  ```elixir
+  # test/support/my_module_wrapper.ex
+  defmodule MyModuleWrapper do
+    use Walkman.Wrapper, MyModule
+  end
+  ```
+
+  ```elixir
+  # test/my_module_test.exs
+  test "MyModule" do
+    Walkman.use_tape "MyModule1" do
+      assert :ok = calls_my_module()
+    end
+  end
+  ```
+
+  ## Recording tapes
+  The first time you run the tests, Walkman will record test fixtures. You should commit these to your git repository. To re-record your fixtures, delete them and run the tests again (or put `Walkman.set_mode(:replay)` in `test/test_helper.ex`).
+  """
+
+  @doc "Start walkman (in `test/test_helper.ex`)"
+  @spec start_link() :: GenServer.on_start()
   def start_link() do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
-  def set_mode(mode) do
+  @doc false
+  def child_spec(_arg), do: nil
+
+  @doc """
+  Set Walkman's mode. The default is `:normal`.
+
+  Walkman has three modes:
+
+  - `:normal` - if a tape is found, then the tape is replayed. If there is no tape, then a new one is made. This is the closest to how Ruby's VCR works.
+  - `:replay` - only replay, and raise an exception if no pre-recorded tape is found. This should be used when running the tests on the CI.
+  - `:record` - all calls are passed through to the implementation and record new tapes. This can be used to re-record tapes.
+  - `:integration` - calls are passed through to the implementation but no new tapes are made. Useful for running integration tests on the CI.
+  """
+  @spec set_mode(mode :: :normal | :replay | :record) :: :ok
+  def set_mode(mode) when mode in [:normal, :replay, :record] do
     :ok = GenServer.call(__MODULE__, {:set_mode, mode})
   end
 
-  def mode() do
-    GenServer.call(__MODULE__, :mode)
-  end
+  @doc """
+  Load a tape for use in a test.
 
+  ```elixir
+  test "MyModule" do
+    Walkman.use_tape "MyModule" do
+      assert {:ok, _} = MyModule.my_function
+    end
+  end
+  ```
+  """
+  @spec use_tape(test_id :: String.t(), do: term()) :: :ok
   defmacro use_tape(test_id, do: block) do
     quote do
       :ok = GenServer.call(Walkman, {:set_test_id, unquote(test_id)})
@@ -22,6 +87,12 @@ defmodule Walkman do
     end
   end
 
+  @doc false
+  def mode() do
+    GenServer.call(__MODULE__, :mode)
+  end
+
+  @doc false
   def call_function(mod, fun, args) do
     case mode() do
       :record ->
@@ -32,25 +103,29 @@ defmodule Walkman do
       :replay ->
         replay({mod, fun, args})
 
-      :integration ->
+      :normal ->
         apply(mod, fun, args)
     end
   end
 
+  @doc false
   def record(args, output) do
     :ok = GenServer.call(__MODULE__, {:record, args, output})
   end
 
+  @doc false
   def replay(args) do
     GenServer.call(__MODULE__, {:replay, args})
   end
 
+  @doc false
   def init(_nil) do
     {:ok, {:mode_not_set, nil, []}}
   end
 
-  def handle_call(:start, _from, {:integration, test_id, _tests}) do
-    {:reply, :ok, {:integration, test_id, []}}
+  @doc false
+  def handle_call(:start, _from, {:normal, test_id, _tests}) do
+    {:reply, :ok, {:normal, test_id, []}}
   end
 
   def handle_call(:start, _from, {_mode, test_id, _tests}) do
@@ -90,13 +165,8 @@ defmodule Walkman do
   end
 
   def handle_call({:set_mode, mode}, _from, {_mode, test_id, _tests})
-      when mode in [:record, :replay, :integration] do
+      when mode in [:record, :replay, :normal] do
     {:reply, :ok, {mode, test_id, []}}
-  end
-
-  def handle_call({:set_mode, mode}, _from, {_mode, test_id, _tests})
-      when mode in ["record", "replay", "integration"] do
-    {:reply, :ok, {String.to_atom(mode), test_id, []}}
   end
 
   def handle_call(:mode, _from, {mode, _, _} = state) do
@@ -107,8 +177,9 @@ defmodule Walkman do
     {:reply, :ok, {mode, test_id, []}}
   end
 
-  defp filename(test_id),
-    do: Path.relative_to("test/fixtures/walkman/#{test_id}", File.cwd!())
+  defp filename(test_id) do
+    Path.relative_to("test/fixtures/walkman/#{test_id}", File.cwd!())
+  end
 
   defp load_replay(test_id) do
     case File.read(filename(test_id)) do
