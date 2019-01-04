@@ -4,7 +4,7 @@ Walkman was inspired by Ruby's VCR. While VCR deals explicitely with HTTP reques
 
 Walkman wraps modules instead of modifying them directly, which means there is less funny business going on, so less chance newer versions of Elixir will break the package. Walkman is more explicit and less magical, and as a result you will have to write a tiny bit more boilerplate than you're maybe used to.
 
-## Usage
+## Getting started
 
 Somewhere in your application you've got a module, `MyModule`, that communicates with the outside world. Perhaps it is an SSH driver, or it makes an HTTP request.
 
