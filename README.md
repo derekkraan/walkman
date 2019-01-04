@@ -1,5 +1,7 @@
 # Walkman
 
+[![Hex pm](http://img.shields.io/hexpm/v/walkman.svg?style=flat)](https://hex.pm/packages/walkman) [![CircleCI badge](https://circleci.com/gh/derekkraan/walkman.png?circle-token=:circle-token)](https://circleci.com/gh/derekkraan/walkman)
+
 Walkman was inspired by Ruby's VCR. While VCR deals explicitely with HTTP requests, Walkman is useful for performing automated mocking of any module.
 
 Walkman wraps modules instead of modifying them directly, which means there is less funny business going on, so less chance newer versions of Elixir will break the package. Walkman is more explicit and less magical, and as a result you will have to write a tiny bit more boilerplate than you're maybe used to.
