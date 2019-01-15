@@ -58,9 +58,9 @@ defmodule Walkman do
   ```
   """
   @spec use_tape(test_id :: String.t(), do: term()) :: :ok
-  defmacro use_tape(test_id, do: block) do
+  defmacro use_tape(test_id, test_options \\ [], do: block) do
     quote do
-      :ok = GenServer.call(Walkman, {:set_test_id, unquote(test_id)})
+      :ok = GenServer.call(Walkman, {:set_test_id, unquote(test_id), unquote(test_options)})
       :ok = GenServer.call(Walkman, :start)
       unquote(block)
       :ok = GenServer.call(Walkman, :finish)

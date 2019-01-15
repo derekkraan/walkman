@@ -3,61 +3,76 @@ defmodule WalkmanServer do
 
   @moduledoc false
 
+  defstruct mode: :mode_not_set, test_id: nil, tests: [], test_options: []
+
   def init(_nil) do
-    {:ok, {:mode_not_set, nil, []}}
+    {:ok, %__MODULE__{}}
   end
 
-  def handle_call(:start, _from, {:normal, test_id, _tests}) do
-    {:reply, :ok, {:normal, test_id, []}}
+  def handle_call(:start, _from, %{mode: :normal} = s) do
+    {:reply, :ok, %{s | tests: []}}
   end
 
-  def handle_call(:start, _from, {_mode, test_id, _tests}) do
-    case load_replay(test_id) do
+  def handle_call(:start, _from, s) do
+    case load_replay(s.test_id) do
       {:ok, tests} ->
-        {:reply, :ok, {:replay, test_id, tests}}
+        {:reply, :ok, %{s | mode: :replay, tests: tests}}
 
       {:error, _err} ->
-        {:reply, :ok, {:record, test_id, []}}
+        {:reply, :ok, %{s | mode: :record, tests: []}}
     end
   end
 
-  def handle_call(:finish, _from, {:record, test_id, tests}) do
-    save_replay(test_id, tests)
-    {:reply, :ok, {:record, test_id, []}}
+  def handle_call(:finish, _from, %{mode: :record} = s) do
+    save_replay(s.test_id, s.tests)
+    {:reply, :ok, %{s | tests: []}}
   end
 
-  def handle_call(:finish, _from, {mode, test_id, _tests}) do
-    {:reply, :ok, {mode, test_id, []}}
+  def handle_call(:finish, _from, s) do
+    {:reply, :ok, %{s | tests: []}}
   end
 
-  def handle_call({:record, args, output}, _from, {mode, test_id, tests}) do
-    {:reply, :ok, {mode, test_id, [{args, output} | tests]}}
+  def handle_call({:record, args, output}, _from, s) do
+    {:reply, :ok, %{s | tests: [{args, output} | s.tests]}}
   end
 
-  def handle_call({:replay, args}, _from, {_mode, _test_id, tests} = state) do
-    {_key, value} =
-      Enum.find(tests, :module_test_not_found, fn
-        {replay_args, _output} -> replay_args == args
-      end)
-      |> case do
-        :module_test_not_found -> raise "replay not found for args #{inspect(args)}"
-        other -> other
-      end
+  def handle_call({:replay, args}, _from, s) do
+    case Keyword.get(s.test_options, :preserve_order, false) do
+      true ->
+        # only match on first test, then discard it to preserve order
+        [{replay_args, value} | tests] = s.tests
 
-    {:reply, value, state}
+        if replay_args == args do
+          {:reply, value, %{s | tests: tests}}
+        else
+          raise "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"
+        end
+
+      false ->
+        {_key, value} =
+          Enum.find(s.tests, :module_test_not_found, fn
+            {replay_args, _output} -> replay_args == args
+          end)
+          |> case do
+            :module_test_not_found -> raise "replay not found for args #{inspect(args)}"
+            other -> other
+          end
+
+        {:reply, value, s}
+    end
   end
 
-  def handle_call({:set_mode, mode}, _from, {_mode, test_id, _tests})
+  def handle_call({:set_mode, mode}, _from, s)
       when mode in [:record, :replay, :normal] do
-    {:reply, :ok, {mode, test_id, []}}
+    {:reply, :ok, %{s | mode: mode, tests: []}}
   end
 
-  def handle_call(:mode, _from, {mode, _, _} = state) do
-    {:reply, mode, state}
+  def handle_call(:mode, _from, %{mode: mode} = s) do
+    {:reply, mode, s}
   end
 
-  def handle_call({:set_test_id, test_id}, _from, {mode, _test_id, _tests}) do
-    {:reply, :ok, {mode, test_id, []}}
+  def handle_call({:set_test_id, test_id, test_options}, _from, s) do
+    {:reply, :ok, %{s | test_id: test_id, test_options: test_options, tests: []}}
   end
 
   defp filename(test_id) do
@@ -73,6 +88,6 @@ defmodule WalkmanServer do
 
   defp save_replay(test_id, tests) do
     Path.relative_to("test/fixtures/walkman", File.cwd!()) |> File.mkdir_p()
-    filename(test_id) |> File.write!(:erlang.term_to_binary(tests), [:write])
+    filename(test_id) |> File.write!(:erlang.term_to_binary(List.reverse(tests)), [:write])
   end
 end
