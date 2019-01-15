@@ -88,6 +88,6 @@ defmodule WalkmanServer do
 
   defp save_replay(test_id, tests) do
     Path.relative_to("test/fixtures/walkman", File.cwd!()) |> File.mkdir_p()
-    filename(test_id) |> File.write!(:erlang.term_to_binary(List.reverse(tests)), [:write])
+    filename(test_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
   end
 end
