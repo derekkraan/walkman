@@ -45,7 +45,7 @@ defmodule WalkmanServer do
             raise "there are no more calls left to replay"
 
           [{replay_args, value} | tests] ->
-            if replay_args == args do
+            if args_match?(args, replay_args) do
               {:reply, value, %{s | tests: tests}}
             else
               raise "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"
@@ -55,7 +55,7 @@ defmodule WalkmanServer do
       false ->
         {_key, value} =
           Enum.find(s.tests, :module_test_not_found, fn
-            {replay_args, _output} -> replay_args == args
+            {replay_args, _output} -> args_match?(replay_args, args)
           end)
           |> case do
             :module_test_not_found -> raise "replay not found for args #{inspect(args)}"
@@ -93,5 +93,17 @@ defmodule WalkmanServer do
   defp save_replay(test_id, tests) do
     Path.relative_to("test/fixtures/walkman", File.cwd!()) |> File.mkdir_p()
     filename(test_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
+  end
+
+  defp args_match?(args, replay_args) do
+    normalize_pids(args) == normalize_pids(replay_args)
+  end
+
+  defp normalize_pids(args) do
+    Tuple.to_list(args)
+    |> Enum.map(fn
+      pid when is_pid(pid) -> :pid
+      other -> other
+    end)
   end
 end
