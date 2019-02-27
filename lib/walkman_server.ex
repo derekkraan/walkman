@@ -40,12 +40,16 @@ defmodule WalkmanServer do
     case Keyword.get(s.test_options, :preserve_order, false) do
       true ->
         # only match on first test, then discard it to preserve order
-        [{replay_args, value} | tests] = s.tests
+        case s.tests do
+          [] ->
+            raise "there are no more calls left to replay"
 
-        if replay_args == args do
-          {:reply, value, %{s | tests: tests}}
-        else
-          raise "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"
+          [{replay_args, value} | tests] ->
+            if replay_args == args do
+              {:reply, value, %{s | tests: tests}}
+            else
+              raise "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"
+            end
         end
 
       false ->
