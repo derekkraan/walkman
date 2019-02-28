@@ -42,7 +42,7 @@ defmodule WalkmanServer do
         # only match on first test, then discard it to preserve order
         case s.tests do
           [] ->
-            raise "there are no more calls left to replay"
+            raise "there are no more replays left (all replays have been used up)"
 
           [{replay_args, value} | tests] ->
             if args_match?(args, replay_args) do
