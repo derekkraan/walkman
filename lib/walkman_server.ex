@@ -99,17 +99,17 @@ defmodule WalkmanServer do
     {m, f, normalize_args(a)} == {m2, f2, normalize_args(a2)}
   end
 
-  defp normalize_args(args), do: Enum.map(args, fn arg -> normalize_arg(arg) end)
+  defp normalize_args(arg) when is_list(arg),
+    do: Enum.map(args, fn arg -> normalize_args(arg) end)
 
-  defp normalize_arg(arg) when is_list(arg), do: normalize_args(arg)
-  defp normalize_arg(%Regex{} = arg), do: Regex.recompile!(arg)
-  defp normalize_arg(%_struct{} = arg), do: arg
+  defp normalize_args(%Regex{} = arg), do: Regex.recompile!(arg)
+  defp normalize_args(%_struct{} = arg), do: arg
 
-  defp normalize_arg(arg) when is_map(arg),
-    do: arg |> Enum.map(fn {k, v} -> {normalize_arg(k), normalize_arg(v)} end) |> Enum.into(%{})
+  defp normalize_args(arg) when is_map(arg),
+    do: arg |> Enum.map(fn {k, v} -> {normalize_args(k), normalize_args(v)} end) |> Enum.into(%{})
 
-  defp normalize_arg(arg) when is_tuple(arg),
+  defp normalize_args(arg) when is_tuple(arg),
     do: arg |> Tuple.to_list() |> normalize_args |> List.to_tuple()
 
-  defp normalize_arg(arg), do: arg
+  defp normalize_args(arg), do: arg
 end
