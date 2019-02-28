@@ -45,7 +45,7 @@ defmodule WalkmanServer do
             raise "there are no more calls left to replay"
 
           [{replay_args, value} | tests] ->
-            if replay_args == args do
+            if args_match?(replay_args, args) do
               {:reply, value, %{s | tests: tests}}
             else
               raise "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"
@@ -55,7 +55,7 @@ defmodule WalkmanServer do
       false ->
         {_key, value} =
           Enum.find(s.tests, :module_test_not_found, fn
-            {replay_args, _output} -> replay_args == args
+            {replay_args, _output} -> args_match?(replay_args, args)
           end)
           |> case do
             :module_test_not_found -> raise "replay not found for args #{inspect(args)}"
@@ -94,4 +94,22 @@ defmodule WalkmanServer do
     Path.relative_to("test/fixtures/walkman", File.cwd!()) |> File.mkdir_p()
     filename(test_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
   end
+
+  defp args_match?(args, args2) do
+    normalize_args(args) == normalize_args(args2)
+  end
+
+  defp normalize_args(arg) when is_list(arg),
+    do: Enum.map(arg, fn arg -> normalize_args(arg) end)
+
+  defp normalize_args(%Regex{} = arg), do: Regex.recompile!(arg)
+  defp normalize_args(%_struct{} = arg), do: arg
+
+  defp normalize_args(arg) when is_map(arg),
+    do: arg |> Enum.map(fn {k, v} -> {normalize_args(k), normalize_args(v)} end) |> Enum.into(%{})
+
+  defp normalize_args(arg) when is_tuple(arg),
+    do: arg |> Tuple.to_list() |> normalize_args |> List.to_tuple()
+
+  defp normalize_args(arg), do: arg
 end
