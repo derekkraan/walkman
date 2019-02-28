@@ -100,7 +100,7 @@ defmodule WalkmanServer do
   end
 
   defp normalize_args(arg) when is_list(arg),
-    do: Enum.map(args, fn arg -> normalize_args(arg) end)
+    do: Enum.map(arg, fn arg -> normalize_args(arg) end)
 
   defp normalize_args(%Regex{} = arg), do: Regex.recompile!(arg)
   defp normalize_args(%_struct{} = arg), do: arg
