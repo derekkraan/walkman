@@ -95,13 +95,12 @@ defmodule WalkmanServer do
     filename(test_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
   end
 
-  defp args_match?(args, replay_args) do
-    normalize_pids(args) == normalize_pids(replay_args)
+  defp args_match?({m, f, a}, {m2, f2, a2}) do
+    {m, f, normalize_pids(a)} == {m, f, normalize_pids(a2)}
   end
 
   defp normalize_pids(args) do
-    Tuple.to_list(args)
-    |> Enum.map(fn
+    Enum.map(args, fn
       pid when is_pid(pid) -> :pid
       other -> other
     end)
