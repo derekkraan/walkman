@@ -95,8 +95,8 @@ defmodule WalkmanServer do
     filename(test_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
   end
 
-  defp args_match?({m, f, a}, {m2, f2, a2}) do
-    {m, f, normalize_args(a)} == {m2, f2, normalize_args(a2)}
+  defp args_match?(args, args2) do
+    normalize_args(args) == normalize_args(args2)
   end
 
   defp normalize_args(arg) when is_list(arg),
