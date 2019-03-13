@@ -96,7 +96,14 @@ defmodule Walkman do
       :normal ->
         apply(mod, fun, args)
     end
+    |> maybe_raise_error()
   end
+
+  defp maybe_raise_error({:error, error}) do
+    raise error
+  end
+
+  defp maybe_raise_error(not_error), do: not_error
 
   defp mode() do
     GenServer.call(__MODULE__, :mode)

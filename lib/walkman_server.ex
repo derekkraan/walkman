@@ -42,27 +42,30 @@ defmodule WalkmanServer do
         # only match on first test, then discard it to preserve order
         case s.tests do
           [] ->
-            raise "there are no more calls left to replay"
+            {:reply, {:error, "there are no more calls left to replay"}, s}
 
           [{replay_args, value} | tests] ->
             if args_match?(replay_args, args) do
               {:reply, value, %{s | tests: tests}}
             else
-              raise "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"
+              {:reply,
+               {:error,
+                "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"},
+               s}
             end
         end
 
       false ->
-        {_key, value} =
-          Enum.find(s.tests, :module_test_not_found, fn
-            {replay_args, _output} -> args_match?(replay_args, args)
-          end)
-          |> case do
-            :module_test_not_found -> raise "replay not found for args #{inspect(args)}"
-            other -> other
-          end
+        Enum.find(s.tests, :module_test_not_found, fn
+          {replay_args, _output} -> args_match?(replay_args, args)
+        end)
+        |> case do
+          :module_test_not_found ->
+            {:reply, {:error, "replay not found for args #{inspect(args)}"}, s}
 
-        {:reply, value, s}
+          {_key, value} ->
+            {:reply, value, s}
+        end
     end
   end
 
