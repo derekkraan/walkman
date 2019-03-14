@@ -67,8 +67,12 @@ defmodule Walkman do
     quote do
       :ok = GenServer.call(Walkman, {:set_test_id, unquote(test_id), unquote(test_options)})
       :ok = GenServer.call(Walkman, :start)
-      unquote(block)
-      :ok = GenServer.call(Walkman, :finish)
+
+      try do
+        unquote(block)
+      after
+        :ok = GenServer.call(Walkman, :finish)
+      end
     end
   end
 
