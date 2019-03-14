@@ -40,7 +40,12 @@ defmodule Walkman do
   The first time you run the tests, Walkman will record test fixtures. You should commit these to your git repository. To re-record your fixtures, delete them and run the tests again (or put `Walkman.set_mode(:replay)` in `test/test_helper.ex`).
   """
 
-  @doc "Start walkman (in `test/test_helper.ex`)"
+  @doc false
+  def child_spec(_) do
+    %{id: __MODULE__, start: {__MODULE__, :start_link, []}}
+  end
+
+  @doc false
   @spec start_link() :: GenServer.on_start()
   def start_link() do
     GenServer.start_link(WalkmanServer, nil, name: __MODULE__)
