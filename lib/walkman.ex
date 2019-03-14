@@ -98,7 +98,7 @@ defmodule Walkman do
       :replay ->
         replay({mod, fun, args})
 
-      :normal ->
+      :integration ->
         apply(mod, fun, args)
     end
     |> maybe_raise_error()

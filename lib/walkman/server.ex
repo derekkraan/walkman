@@ -3,27 +3,27 @@ defmodule WalkmanServer do
 
   @moduledoc false
 
-  defstruct mode: :record_or_replay, test_id: nil, tests: [], test_options: []
+  defstruct mode: :normal, replay_mode: :replay, test_id: nil, tests: [], test_options: []
 
   def init(_nil) do
     {:ok, %__MODULE__{}}
   end
 
-  def handle_call(:start, _from, %{mode: :normal} = s) do
+  def handle_call(:start, _from, %{mode: :integration} = s) do
     {:reply, :ok, %{s | tests: []}}
   end
 
   def handle_call(:start, _from, s) do
     case load_replay(s.test_id) do
       {:ok, tests} ->
-        {:reply, :ok, %{s | mode: :replay, tests: tests}}
+        {:reply, :ok, %{s | replay_mode: :replay, tests: tests}}
 
       {:error, _err} ->
-        {:reply, :ok, %{s | mode: :record, tests: []}}
+        {:reply, :ok, %{s | replay_mode: :record, tests: []}}
     end
   end
 
-  def handle_call(:finish, _from, %{mode: :record} = s) do
+  def handle_call(:finish, _from, %{replay_mode: :record} = s) do
     save_replay(s.test_id, s.tests)
     {:reply, :ok, %{s | tests: []}}
   end
@@ -70,11 +70,20 @@ defmodule WalkmanServer do
   end
 
   def handle_call({:set_mode, mode}, _from, s)
-      when mode in [:record, :replay, :normal] do
+      when mode in [:integration, :normal] do
     {:reply, :ok, %{s | mode: mode, tests: []}}
   end
 
-  def handle_call(:mode, _from, %{mode: mode} = s) do
+  def handle_call(:mode, _from, s) do
+    mode =
+      case s.mode do
+        :integration ->
+          :integration
+
+        :normal ->
+          s.replay_mode
+      end
+
     {:reply, mode, s}
   end
 
