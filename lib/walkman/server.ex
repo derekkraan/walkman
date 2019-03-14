@@ -3,7 +3,7 @@ defmodule WalkmanServer do
 
   @moduledoc false
 
-  defstruct mode: :normal, test_id: nil, tests: [], test_options: []
+  defstruct mode: :record_or_replay, test_id: nil, tests: [], test_options: []
 
   def init(_nil) do
     {:ok, %__MODULE__{}}
