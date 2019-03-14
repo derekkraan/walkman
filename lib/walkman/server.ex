@@ -25,11 +25,11 @@ defmodule WalkmanServer do
 
   def handle_call(:finish, _from, %{mode: :record} = s) do
     save_replay(s.test_id, s.tests)
-    {:reply, :ok, %{s | tests: [], mode: :normal}}
+    {:reply, :ok, %{s | tests: []}}
   end
 
   def handle_call(:finish, _from, s) do
-    {:reply, :ok, %{s | tests: [], mode: :normal}}
+    {:reply, :ok, %{s | tests: []}}
   end
 
   def handle_call({:record, args, output}, _from, s) do
