@@ -3,7 +3,7 @@ defmodule WalkmanServer do
 
   @moduledoc false
 
-  defstruct mode: :normal, replay_mode: :replay, test_id: nil, tests: [], test_options: []
+  defstruct mode: :normal, replay_mode: nil, test_id: nil, tests: [], test_options: []
 
   def init(_nil) do
     {:ok, %__MODULE__{}}
@@ -25,11 +25,11 @@ defmodule WalkmanServer do
 
   def handle_call(:finish, _from, %{replay_mode: :record} = s) do
     save_replay(s.test_id, s.tests)
-    {:reply, :ok, %{s | tests: []}}
+    {:reply, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
   def handle_call(:finish, _from, s) do
-    {:reply, :ok, %{s | tests: []}}
+    {:reply, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
   def handle_call({:record, args, output}, _from, s) do
@@ -81,7 +81,7 @@ defmodule WalkmanServer do
           :integration
 
         :normal ->
-          s.replay_mode
+          s.replay_mode || :normal
       end
 
     {:reply, mode, s}

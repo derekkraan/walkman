@@ -100,6 +100,9 @@ defmodule Walkman do
 
       :integration ->
         apply(mod, fun, args)
+
+      :normal ->
+        apply(mod, fun, args)
     end
     |> maybe_raise_error()
   end
