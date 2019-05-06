@@ -42,14 +42,14 @@ defmodule WalkmanServer do
         # only match on first test, then discard it to preserve order
         case s.tests do
           [] ->
-            {:reply, {:error, "there are no more calls left to replay"}, s}
+            {:reply, {:walkman_error, "there are no more calls left to replay"}, s}
 
           [{replay_args, value} | tests] ->
             if args_match?(replay_args, args) do
               {:reply, value, %{s | tests: tests}}
             else
               {:reply,
-               {:error,
+               {:walkman_error,
                 "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"},
                s}
             end
@@ -61,7 +61,7 @@ defmodule WalkmanServer do
         end)
         |> case do
           :module_test_not_found ->
-            {:reply, {:error, "replay not found for args #{inspect(args)}"}, s}
+            {:reply, {:walkman_error, "replay not found for args #{inspect(args)}"}, s}
 
           {_key, value} ->
             {:reply, value, s}
