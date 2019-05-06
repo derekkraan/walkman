@@ -102,8 +102,12 @@ defmodule Walkman do
     |> maybe_raise_error()
   end
 
-  defp maybe_raise_error({:error, error}) do
-    raise error
+  defmodule WalkmanError do
+    defexception [:message]
+  end
+
+  defp maybe_raise_error({:error, error} = msg) do
+    raise %WalkmanError{message: msg}
   end
 
   defp maybe_raise_error(not_error), do: not_error
