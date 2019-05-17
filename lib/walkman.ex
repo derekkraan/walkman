@@ -86,8 +86,8 @@ defmodule Walkman do
   - `:record` - all calls are passed through to the implementation and record new tapes. This can be used to re-record tapes.
   - `:integration` - calls are passed through to the implementation but no new tapes are made. Useful for running integration tests on the CI.
   """
-  @spec set_mode(mode :: :normal | :replay | :record) :: :ok
-  def set_mode(mode) when mode in [:normal, :replay, :record] do
+  @spec set_mode(mode :: :normal | :integration) :: :ok
+  def set_mode(mode) when mode in [:normal, :integration] do
     :ok = GenServer.call(__MODULE__, {:set_mode, mode})
   end
 
