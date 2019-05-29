@@ -32,6 +32,10 @@ defmodule WalkmanServer do
     {:reply, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
+  def handle_call(:cancel, _from, s) do
+    {:reply, :ok, %{s | tests: [], replay_mode: nil}}
+  end
+
   def handle_call({:record, args, output}, _from, s) do
     {:reply, :ok, %{s | tests: [{args, output} | s.tests]}}
   end

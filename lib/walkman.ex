@@ -70,8 +70,12 @@ defmodule Walkman do
 
       try do
         unquote(block)
-      after
-        :ok = GenServer.call(Walkman, :finish)
+      rescue
+        e in RuntimeError ->
+          :ok = GenServer.call(Walkman, :cancel)
+      else
+        _ ->
+          :ok = GenServer.call(Walkman, :finish)
       end
     end
   end

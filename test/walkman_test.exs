@@ -24,4 +24,25 @@ defmodule WalkmanTest do
 
     Walkman.set_mode(:normal)
   end
+
+  test "records a fixture" do
+    File.rm("test/fixtures/walkman/record a fixture")
+    refute File.exists?("test/fixtures/walkman/record a fixture")
+
+    Walkman.use_tape "record a fixture" do
+      assert :ok = TestEchoWrapper.echo("record a fixture")
+    end
+
+    assert File.exists?("test/fixtures/walkman/record a fixture")
+  end
+
+  test "does not record a fixture when the test fails" do
+    assert_raise(MatchError, fn ->
+      Walkman.use_tape "no_fixture" do
+        :does_not_match = TestEchoWrapper.echo("do not record this")
+      end
+    end)
+
+    refute File.exists?("test/fixtures/walkman/no_fixture")
+  end
 end
