@@ -3,7 +3,12 @@ defmodule Walkman.Tape do
 
   @moduledoc false
 
-  defstruct mode: :normal, replay_mode: nil, tape_id: nil, tests: [], preserve_order: true
+  defstruct mode: :normal,
+            replay_mode: nil,
+            tape_id: nil,
+            tests: [],
+            preserve_order: true,
+            module_md5s: %{}
 
   @type mode :: :normal | :integration
 
@@ -54,12 +59,24 @@ defmodule Walkman.Tape do
   end
 
   defp init_tests(s) do
-    case load_replay(s.tape_id) do
-      {:ok, tests} ->
-        %{s | replay_mode: :replay, tests: tests}
+    case load_replay(s) do
+      {:ok, new_state} ->
+        %{new_state | replay_mode: :replay}
+        |> check_module_md5s()
 
       {:error, _err} ->
         %{s | replay_mode: :record, tests: []}
+    end
+  end
+
+  # change to record mode if any of the module md5s don't match
+  defp check_module_md5s(state) do
+    Enum.all?(state.module_md5s, fn {module, md5} ->
+      md5 == module.__info__(:md5)
+    end)
+    |> case do
+      true -> state
+      false -> %{state | replay_mode: :record, tests: [], module_md5s: []}
     end
   end
 
@@ -72,11 +89,15 @@ defmodule Walkman.Tape do
     {:reply, replay_mode, s}
   end
 
-  def handle_call({:record, args, output}, _from, s) do
-    {:reply, :ok, %{s | tests: [{args, output} | s.tests]}}
+  def handle_call({:record, {mod, _, _} = mfa, output}, _from, s) do
+    s =
+      Map.put(s, :module_md5s, Map.put(s.module_md5s, mod, mod.__info__(:md5)))
+      |> Map.put(:tests, [{mfa, output} | s.tests])
+
+    {:reply, :ok, s}
   end
 
-  def handle_call({:replay, args}, _from, s) do
+  def handle_call({:replay, mfa}, _from, s) do
     case s.preserve_order do
       true ->
         # only match on first test, then discard it to preserve order
@@ -85,23 +106,22 @@ defmodule Walkman.Tape do
             {:reply, {:walkman_error, "there are no more calls left to replay"}, s}
 
           [{replay_args, value} | tests] ->
-            if args_match?(replay_args, args) do
+            if args_match?(replay_args, mfa) do
               {:reply, value, %{s | tests: tests}}
             else
               {:reply,
                {:walkman_error,
-                "replay found #{inspect(replay_args)} didn't match given args #{inspect(args)}"},
-               s}
+                "replay found #{inspect(replay_args)} didn't match given mfa #{inspect(mfa)}"}, s}
             end
         end
 
       false ->
         Enum.find(s.tests, :module_test_not_found, fn
-          {replay_args, _output} -> args_match?(replay_args, args)
+          {replay_args, _output} -> args_match?(replay_args, mfa)
         end)
         |> case do
           :module_test_not_found ->
-            {:reply, {:walkman_error, "replay not found for args #{inspect(args)}"}, s}
+            {:reply, {:walkman_error, "replay not found for mfa #{inspect(mfa)}"}, s}
 
           {_key, value} ->
             {:reply, value, s}
@@ -109,33 +129,46 @@ defmodule Walkman.Tape do
     end
   end
 
-  def handle_call(:finish, _from, %{replay_mode: :record} = s) do
-    save_replay(s.tape_id, s.tests)
-    {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
+  def handle_call(:finish, _from, %{replay_mode: :record} = state) do
+    save_replay(state)
+    {:stop, :normal, :ok, nil}
   end
 
   def handle_call(:finish, _from, s) do
-    {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
+    {:stop, :normal, :ok, nil}
   end
 
   def handle_call(:cancel, _from, s) do
-    {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
+    {:stop, :normal, :ok, nil}
   end
 
   defp filename(tape_id) do
     Path.relative_to("test/fixtures/walkman/#{tape_id}", File.cwd!())
   end
 
-  defp load_replay(tape_id) do
-    case File.read(filename(tape_id)) do
-      {:ok, contents} -> {:ok, :erlang.binary_to_term(contents)}
-      {:error, err} -> {:error, err}
+  defp load_replay(state) do
+    case File.read(filename(state.tape_id)) do
+      {:ok, contents} ->
+        {:ok, Map.merge(state, decode_state(contents))}
+
+      {:error, err} ->
+        {:error, err}
     end
   end
 
-  defp save_replay(tape_id, tests) do
-    Path.relative_to("test/fixtures/walkman", File.cwd!()) |> File.mkdir_p()
-    filename(tape_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
+  defp save_replay(state) do
+    File.write!(filename(state.tape_id), encode_state(state), [
+      :write
+    ])
+  end
+
+  defp encode_state(state) do
+    :erlang.term_to_binary({Enum.reverse(state.tests), state.module_md5s})
+  end
+
+  defp decode_state(string) do
+    {tests, module_md5s} = :erlang.binary_to_term(string)
+    %{tests: tests, module_md5s: module_md5s}
   end
 
   defp args_match?(args, args2) do

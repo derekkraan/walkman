@@ -205,8 +205,8 @@ defmodule Walkman do
 
   defp maybe_raise_error(not_error), do: not_error
 
-  defp record(args, output) do
-    :ok = GenServer.call(walkman_tape!(), {:record, args, output})
+  defp record({mod, fun, args}, output) do
+    :ok = GenServer.call(walkman_tape!(), {:record, {mod, fun, args}, output})
   end
 
   defp replay(args) do
