@@ -1,7 +1,7 @@
 defmodule TestEcho do
   def echo(msg) do
     send(self(), msg)
-    :ok
+    {:ok, msg}
   end
 end
 

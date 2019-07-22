@@ -3,13 +3,13 @@ defmodule WalkmanTest do
   doctest Walkman
 
   test "without tape" do
-    assert :ok = TestEchoWrapper.echo("echo")
+    assert {:ok, "echo"} = TestEchoWrapper.echo("echo")
     assert_receive("echo", 10)
   end
 
   test "uses a pre-recorded tape" do
     Walkman.use_tape "echo" do
-      assert :ok = TestEchoWrapper.echo("echo")
+      assert {:ok, "echo"} = TestEchoWrapper.echo("echo")
       refute_receive("echo", 10)
     end
   end
@@ -18,7 +18,7 @@ defmodule WalkmanTest do
     Walkman.set_mode(:integration)
 
     Walkman.use_tape "integration mode" do
-      assert :ok = TestEchoWrapper.echo("integration")
+      assert {:ok, "integration"} = TestEchoWrapper.echo("integration")
       assert_receive("integration", 10)
     end
 
@@ -30,7 +30,7 @@ defmodule WalkmanTest do
     refute File.exists?("test/fixtures/walkman/record a fixture")
 
     Walkman.use_tape "record a fixture" do
-      assert :ok = TestEchoWrapper.echo("record a fixture")
+      assert {:ok, "record a fixture"} = TestEchoWrapper.echo("record a fixture")
     end
 
     assert File.exists?("test/fixtures/walkman/record a fixture")
