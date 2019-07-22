@@ -134,11 +134,11 @@ defmodule Walkman.Tape do
     {:stop, :normal, :ok, nil}
   end
 
-  def handle_call(:finish, _from, s) do
+  def handle_call(:finish, _from, _s) do
     {:stop, :normal, :ok, nil}
   end
 
-  def handle_call(:cancel, _from, s) do
+  def handle_call(:cancel, _from, _s) do
     {:stop, :normal, :ok, nil}
   end
 
