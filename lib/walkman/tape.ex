@@ -1,18 +1,18 @@
-defmodule Walkman.Server do
+defmodule Walkman.Tape do
   use GenServer
 
   @moduledoc false
 
-  defstruct mode: :normal, replay_mode: nil, test_id: nil, tests: [], preserve_order: true
+  defstruct mode: :normal, replay_mode: nil, tape_id: nil, tests: [], preserve_order: true
 
   @type mode :: :normal | :integration
 
   @type replay_mode :: :replay | :record
 
-  @type test_id :: String.t()
+  @type tape_id :: String.t()
 
   @type options :: [
-          test_id: test_id(),
+          tape_id: tape_id(),
           mode: mode(),
           test_pid: pid(),
           global: boolean(),
@@ -31,7 +31,7 @@ defmodule Walkman.Server do
 
   def init(options) do
     mode = Keyword.get(options, :mode, :normal)
-    test_id = Keyword.fetch!(options, :test_id)
+    tape_id = Keyword.fetch!(options, :tape_id)
     test_pid = Keyword.fetch!(options, :test_pid)
     preserve_order = Keyword.get(options, :preserve_order, true)
     global = Keyword.get(options, :global, false)
@@ -43,7 +43,7 @@ defmodule Walkman.Server do
     end
 
     state =
-      %__MODULE__{mode: mode, test_id: test_id, preserve_order: preserve_order}
+      %__MODULE__{mode: mode, tape_id: tape_id, preserve_order: preserve_order}
       |> init_tests()
 
     {:ok, state}
@@ -54,7 +54,7 @@ defmodule Walkman.Server do
   end
 
   defp init_tests(s) do
-    case load_replay(s.test_id) do
+    case load_replay(s.tape_id) do
       {:ok, tests} ->
         %{s | replay_mode: :replay, tests: tests}
 
@@ -110,7 +110,7 @@ defmodule Walkman.Server do
   end
 
   def handle_call(:finish, _from, %{replay_mode: :record} = s) do
-    save_replay(s.test_id, s.tests)
+    save_replay(s.tape_id, s.tests)
     {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
@@ -122,20 +122,20 @@ defmodule Walkman.Server do
     {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
-  defp filename(test_id) do
-    Path.relative_to("test/fixtures/walkman/#{test_id}", File.cwd!())
+  defp filename(tape_id) do
+    Path.relative_to("test/fixtures/walkman/#{tape_id}", File.cwd!())
   end
 
-  defp load_replay(test_id) do
-    case File.read(filename(test_id)) do
+  defp load_replay(tape_id) do
+    case File.read(filename(tape_id)) do
       {:ok, contents} -> {:ok, :erlang.binary_to_term(contents)}
       {:error, err} -> {:error, err}
     end
   end
 
-  defp save_replay(test_id, tests) do
+  defp save_replay(tape_id, tests) do
     Path.relative_to("test/fixtures/walkman", File.cwd!()) |> File.mkdir_p()
-    filename(test_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
+    filename(tape_id) |> File.write!(:erlang.term_to_binary(Enum.reverse(tests)), [:write])
   end
 
   defp args_match?(args, args2) do

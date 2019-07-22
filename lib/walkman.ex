@@ -94,20 +94,20 @@ defmodule Walkman do
   end
   ```
   """
-  @spec use_tape(test_id :: String.t(), test_options(), do: term()) :: :ok
-  defmacro use_tape(test_id, test_options \\ [], do: block) do
+  @spec use_tape(tape_id :: String.t(), test_options(), do: term()) :: :ok
+  defmacro use_tape(tape_id, test_options \\ [], do: block) do
     quote do
       options =
         Keyword.merge(unquote(test_options),
           mode: Walkman.mode(),
-          test_id: unquote(test_id),
+          tape_id: unquote(tape_id),
           test_pid: self()
         )
 
       {:ok, pid} =
         DynamicSupervisor.start_child(
           Walkman.TestCaseSupervisor,
-          Walkman.Server.child_spec(options)
+          Walkman.Tape.child_spec(options)
         )
 
       try do
@@ -154,8 +154,8 @@ defmodule Walkman do
   ```
   """
   def share_tape(test_pid, other_pid \\ self()) do
-    {:ok, walkman_server} = fetch_walkman_server(test_pid)
-    :ok = GenServer.call(walkman_server, {:share_tape, other_pid})
+    {:ok, walkman_tape} = fetch_walkman_tape(test_pid)
+    :ok = GenServer.call(walkman_tape, {:share_tape, other_pid})
   end
 
   @doc false
@@ -165,12 +165,12 @@ defmodule Walkman do
         :integration
 
       _ ->
-        case walkman_server() do
+        case walkman_tape() do
           nil ->
             :normal
 
-          walkman_server ->
-            GenServer.call(walkman_server, :get_replay_mode)
+          walkman_tape ->
+            GenServer.call(walkman_tape, :get_replay_mode)
         end
     end
   end
@@ -206,35 +206,35 @@ defmodule Walkman do
   defp maybe_raise_error(not_error), do: not_error
 
   defp record(args, output) do
-    :ok = GenServer.call(walkman_server!(), {:record, args, output})
+    :ok = GenServer.call(walkman_tape!(), {:record, args, output})
   end
 
   defp replay(args) do
-    GenServer.call(walkman_server!(), {:replay, args})
+    GenServer.call(walkman_tape!(), {:replay, args})
   end
 
-  defp walkman_server() do
+  defp walkman_tape() do
     # Process.get("$callers") |> IO.inspect()
     [self(), :global]
-    |> Enum.find_value(fn walkman_server ->
-      case fetch_walkman_server(walkman_server) do
-        {:ok, walkman_server} -> walkman_server
+    |> Enum.find_value(fn walkman_tape ->
+      case fetch_walkman_tape(walkman_tape) do
+        {:ok, walkman_tape} -> walkman_tape
         {:error, _err} -> false
       end
     end)
   end
 
-  defp walkman_server!() do
-    case walkman_server() do
-      nil -> raise RuntimeError, "could not find Walkman Server"
-      walkman_server -> walkman_server
+  defp walkman_tape!() do
+    case walkman_tape() do
+      nil -> raise RuntimeError, "could not find Walkman Tape"
+      walkman_tape -> walkman_tape
     end
   end
 
-  defp fetch_walkman_server(test_pid) do
+  defp fetch_walkman_tape(test_pid) do
     case Registry.lookup(Walkman.TestCaseRegistry, test_pid) do
-      [{walkman_server, _value}] ->
-        {:ok, walkman_server}
+      [{walkman_tape, _value}] ->
+        {:ok, walkman_tape}
 
       [] ->
         {:error, :not_found}
