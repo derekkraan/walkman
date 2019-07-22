@@ -34,6 +34,8 @@ defmodule Walkman do
   ## Recording tapes
   The first time you run the tests, Walkman will record test fixtures. You should commit these to your git repository. To re-record your fixtures, delete them and run the tests again. Every time you run your tests after this, Walkman will use the pre-recorded tapes.
 
+  If the implementation of a mocked module changes, any affected tests will automatically be re-recorded.
+
   ## Integration mode
   To disable stubs globally, use `Walkman.set_mode(:integration)`. For example:
 
