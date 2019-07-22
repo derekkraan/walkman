@@ -92,6 +92,12 @@ defmodule Walkman do
     :ok = Registry.put_meta(Walkman.TestCaseRegistry, :mode, mode)
   end
 
+  def share_tape(test_pid, other_pid) do
+    {:ok, walkman_server} = fetch_walkman_server(test_pid)
+    :ok = GenServer.call(walkman_server, {:share_tape, other_pid})
+  end
+
+  @doc false
   def mode() do
     case Registry.meta(Walkman.TestCaseRegistry, :mode) do
       {:ok, :integration} ->

@@ -63,6 +63,11 @@ defmodule Walkman.Server do
     end
   end
 
+  def handle_call({:share_tape, pid}, _from, state) do
+    Registry.register(Walkman.TestCaseRegistry, pid, nil)
+    {:reply, :ok, state}
+  end
+
   def handle_call(:get_replay_mode, _from, %{replay_mode: replay_mode} = s) do
     {:reply, replay_mode, s}
   end

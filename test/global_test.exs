@@ -8,6 +8,7 @@ defmodule GlobalTest do
 
       spawn_link(fn ->
         assert {:ok, "global echo"} = TestEchoWrapper.echo("global echo")
+        refute_receive("global echo", 10)
         send(test_pid, :done)
       end)
 
