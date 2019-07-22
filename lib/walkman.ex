@@ -4,8 +4,10 @@ defmodule Walkman do
 
   ## Getting started
   ```elixir
-  # test/test_helper.exs
-  Walkman.start_link()
+  # test/support/my_module_wrapper.ex
+  defmodule MyModuleWrapper do
+    use Walkman.Wrapper, MyModule
+  end
   ```
 
   ```elixir
@@ -13,19 +15,12 @@ defmodule Walkman do
   config :my_app, my_module: MyModule
   ```
 
-  Change references to `MyModule` in your application to `Application.get_env(:my_app, :my_module)`
-
   ```elixir
   # config/test.exs
   config :my_app, my_module: MyModuleWrapper
   ```
 
-  ```elixir
-  # test/support/my_module_wrapper.ex
-  defmodule MyModuleWrapper do
-    use Walkman.Wrapper, MyModule
-  end
-  ```
+  Now you can replace `MyModule` with `Application.get_env(:my_app, :my_module)` everywhere in your application code.
 
   ```elixir
   # test/my_module_test.exs
@@ -37,8 +32,56 @@ defmodule Walkman do
   ```
 
   ## Recording tapes
-  The first time you run the tests, Walkman will record test fixtures. You should commit these to your git repository. To re-record your fixtures, delete them and run the tests again (or put `Walkman.set_mode(:replay)` in `test/test_helper.ex`).
+  The first time you run the tests, Walkman will record test fixtures. You should commit these to your git repository. To re-record your fixtures, delete them and run the tests again. Every time you run your tests after this, Walkman will use the pre-recorded tapes.
+
+  ## Integration mode
+  To disable stubs globally, use `Walkman.set_mode(:integration)`. For example:
+
+  ```elixir
+  # test/test_helper.ex
+  if System.get_env("INTEGRATION_MODE"), do: Walkman.set_mode(:integration)
+  ```
+
+  ## Concurrent tests
+  Concurrent tests are supported out of the box. When you use `Walkman.use_tape/3`, the tape is registered to the test process pid.
+
+  To access the tape from another process, call `Walkman.share_tape/2`.
+
+  Example:
+
+  ```elixir
+  test "can share tape with another process" do
+    Walkman.use_tape "share_tape" do
+      test_pid = self()
+
+      spawn_link(fn ->
+        Walkman.share_tape(test_pid)
+
+        assert call_stub()
+      end)
+    end
+  end
+  ```
+
+  If this is impractical, then making the tape global is another option. This can **not** be used with concurrent tests.
+
+  Example:
+
+  ```elixir
+  test "can access tape globally" do
+    Walkman.use_tape("global tape", global: true) do
+      spawn_link(fn ->
+        assert call_stub()
+      end)
+    end
+  end
+  ```
   """
+
+  @type test_options :: [
+          preserve_order: boolean(),
+          global: boolean()
+        ]
 
   @doc """
   Load a tape for use in a test.
@@ -51,7 +94,7 @@ defmodule Walkman do
   end
   ```
   """
-  @spec use_tape(test_id :: String.t(), do: term()) :: :ok
+  @spec use_tape(test_id :: String.t(), test_options(), do: term()) :: :ok
   defmacro use_tape(test_id, test_options \\ [], do: block) do
     quote do
       options =

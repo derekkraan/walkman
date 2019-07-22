@@ -1,9 +1,9 @@
-defmodule AllowanceTest do
+defmodule ShareTapeTest do
   use ExUnit.Case
   require Walkman
 
-  test "can allow another process access to our walkman tape" do
-    Walkman.use_tape "allowance" do
+  test "can share tape with another process" do
+    Walkman.use_tape "share_tape" do
       test_pid = self()
 
       spawn_link(fn ->
