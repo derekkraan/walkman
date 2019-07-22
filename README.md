@@ -36,14 +36,6 @@ defmodule MyModuleWrapper do
 end
 ```
 
-Start Walkman during your tests.
-
-```elixir
-# test/test_helper.ex
-
-Walkman.start_link()
-```
-
 Now you can use "tapes" in your tests.
 
 ```elixir

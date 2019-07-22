@@ -1,39 +1,70 @@
-defmodule WalkmanServer do
+defmodule Walkman.Server do
   use GenServer
 
   @moduledoc false
 
-  defstruct mode: :normal, replay_mode: nil, test_id: nil, tests: [], test_options: []
+  defstruct mode: :normal, replay_mode: nil, test_id: nil, tests: [], preserve_order: true
 
-  def init(_nil) do
-    {:ok, %__MODULE__{}}
+  @type mode :: :normal | :integration
+
+  @type replay_mode :: :replay | :record
+
+  @type test_id :: String.t()
+
+  @type options :: [
+          test_id: test_id(),
+          mode: mode(),
+          test_pid: pid(),
+          global: boolean(),
+          preserve_order: boolean()
+        ]
+
+  @spec child_spec(options) :: Supervisor.child_spec()
+  def child_spec(options) do
+    %{start: {__MODULE__, :start_link, [options]}, id: nil, restart: :transient}
   end
 
-  def handle_call(:start, _from, %{mode: :integration} = s) do
-    {:reply, :ok, %{s | tests: []}}
+  @spec start_link(options) :: {:ok, pid} | {:error, term()}
+  def start_link(options) do
+    GenServer.start_link(__MODULE__, options)
   end
 
-  def handle_call(:start, _from, s) do
+  def init(options) do
+    mode = Keyword.get(options, :mode, :normal)
+    test_id = Keyword.fetch!(options, :test_id)
+    test_pid = Keyword.fetch!(options, :test_pid)
+    preserve_order = Keyword.get(options, :preserve_order, true)
+    global = Keyword.get(options, :global, false)
+
+    if global do
+      Registry.register(Walkman.TestCaseRegistry, :global, nil)
+    else
+      Registry.register(Walkman.TestCaseRegistry, test_pid, nil)
+    end
+
+    state =
+      %__MODULE__{mode: mode, test_id: test_id, preserve_order: preserve_order}
+      |> init_tests()
+
+    {:ok, state}
+  end
+
+  defp init_tests(%{mode: :integration} = s) do
+    %{s | tests: []}
+  end
+
+  defp init_tests(s) do
     case load_replay(s.test_id) do
       {:ok, tests} ->
-        {:reply, :ok, %{s | replay_mode: :replay, tests: tests}}
+        %{s | replay_mode: :replay, tests: tests}
 
       {:error, _err} ->
-        {:reply, :ok, %{s | replay_mode: :record, tests: []}}
+        %{s | replay_mode: :record, tests: []}
     end
   end
 
-  def handle_call(:finish, _from, %{replay_mode: :record} = s) do
-    save_replay(s.test_id, s.tests)
-    {:reply, :ok, %{s | tests: [], replay_mode: nil}}
-  end
-
-  def handle_call(:finish, _from, s) do
-    {:reply, :ok, %{s | tests: [], replay_mode: nil}}
-  end
-
-  def handle_call(:cancel, _from, s) do
-    {:reply, :ok, %{s | tests: [], replay_mode: nil}}
+  def handle_call(:get_replay_mode, _from, %{replay_mode: replay_mode} = s) do
+    {:reply, replay_mode, s}
   end
 
   def handle_call({:record, args, output}, _from, s) do
@@ -41,7 +72,7 @@ defmodule WalkmanServer do
   end
 
   def handle_call({:replay, args}, _from, s) do
-    case Keyword.get(s.test_options, :preserve_order, true) do
+    case s.preserve_order do
       true ->
         # only match on first test, then discard it to preserve order
         case s.tests do
@@ -73,26 +104,17 @@ defmodule WalkmanServer do
     end
   end
 
-  def handle_call({:set_mode, mode}, _from, s)
-      when mode in [:integration, :normal] do
-    {:reply, :ok, %{s | mode: mode, tests: []}}
+  def handle_call(:finish, _from, %{replay_mode: :record} = s) do
+    save_replay(s.test_id, s.tests)
+    {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
-  def handle_call(:mode, _from, s) do
-    mode =
-      case s.mode do
-        :integration ->
-          :integration
-
-        :normal ->
-          s.replay_mode || :normal
-      end
-
-    {:reply, mode, s}
+  def handle_call(:finish, _from, s) do
+    {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
-  def handle_call({:set_test_id, test_id, test_options}, _from, s) do
-    {:reply, :ok, %{s | test_id: test_id, test_options: test_options, tests: []}}
+  def handle_call(:cancel, _from, s) do
+    {:stop, :normal, :ok, %{s | tests: [], replay_mode: nil}}
   end
 
   defp filename(test_id) do
