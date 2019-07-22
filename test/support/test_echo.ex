@@ -5,6 +5,6 @@ defmodule TestEcho do
   end
 end
 
-defmodule TestEchoWrapper do
-  use Walkman.Wrapper, TestEcho
-end
+require Walkman
+
+Walkman.def_stub(TestEchoWrapper, for: TestEcho)

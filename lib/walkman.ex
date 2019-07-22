@@ -5,9 +5,8 @@ defmodule Walkman do
   ## Getting started
   ```elixir
   # test/support/my_module_wrapper.ex
-  defmodule MyModuleWrapper do
-    use Walkman.Wrapper, MyModule
-  end
+  require Walkman
+  Walkman.def_stub(MyModuleWrapper, for: MyModule)
   ```
 
   ```elixir
@@ -84,6 +83,20 @@ defmodule Walkman do
           preserve_order: boolean(),
           global: boolean()
         ]
+
+  defmacro def_stub(wrapper_module, for: module) do
+    quote bind_quoted: [module: module, wrapper_module: wrapper_module] do
+      defmodule wrapper_module do
+        Enum.each(module.__info__(:functions), fn {fun, arity} ->
+          args = Macro.generate_arguments(arity, module)
+
+          def unquote(fun)(unquote_splicing(args)) do
+            Walkman.call_function(unquote(module), unquote(fun), unquote(args))
+          end
+        end)
+      end
+    end
+  end
 
   @doc """
   Load a tape for use in a test.
