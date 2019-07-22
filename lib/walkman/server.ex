@@ -41,7 +41,7 @@ defmodule WalkmanServer do
   end
 
   def handle_call({:replay, args}, _from, s) do
-    case Keyword.get(s.test_options, :preserve_order, false) do
+    case Keyword.get(s.test_options, :preserve_order, true) do
       true ->
         # only match on first test, then discard it to preserve order
         case s.tests do
