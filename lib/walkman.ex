@@ -92,7 +92,25 @@ defmodule Walkman do
     :ok = Registry.put_meta(Walkman.TestCaseRegistry, :mode, mode)
   end
 
-  def share_tape(test_pid, other_pid) do
+  @doc """
+  Share the tape with another process.
+
+  Example:
+
+  ```elixir
+  test "can access the stub from another process" do
+    Walkman.use_tape("share tape") do
+      test_pid = self()
+
+      spawn_link(fn ->
+        Walkman.share_tape(test_pid, self())
+        assert call_mock()
+      end)
+    end
+  end
+  ```
+  """
+  def share_tape(test_pid, other_pid \\ self()) do
     {:ok, walkman_server} = fetch_walkman_server(test_pid)
     :ok = GenServer.call(walkman_server, {:share_tape, other_pid})
   end
