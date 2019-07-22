@@ -1,6 +1,7 @@
 defmodule WalkmanTest do
   use ExUnit.Case
   doctest Walkman
+  require Walkman
 
   test "without tape" do
     assert {:ok, "echo"} = TestEchoWrapper.echo("echo")
