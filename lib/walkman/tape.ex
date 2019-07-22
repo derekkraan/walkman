@@ -37,9 +37,9 @@ defmodule Walkman.Tape do
     global = Keyword.get(options, :global, false)
 
     if global do
-      Registry.register(Walkman.TestCaseRegistry, :global, nil)
+      Registry.register(Walkman.TapeRegistry, :global, nil)
     else
-      Registry.register(Walkman.TestCaseRegistry, test_pid, nil)
+      Registry.register(Walkman.TapeRegistry, test_pid, nil)
     end
 
     state =
@@ -64,7 +64,7 @@ defmodule Walkman.Tape do
   end
 
   def handle_call({:share_tape, pid}, _from, state) do
-    Registry.register(Walkman.TestCaseRegistry, pid, nil)
+    Registry.register(Walkman.TapeRegistry, pid, nil)
     {:reply, :ok, state}
   end
 

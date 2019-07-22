@@ -106,7 +106,7 @@ defmodule Walkman do
 
       {:ok, pid} =
         DynamicSupervisor.start_child(
-          Walkman.TestCaseSupervisor,
+          Walkman.TapeSupervisor,
           Walkman.Tape.child_spec(options)
         )
 
@@ -132,7 +132,7 @@ defmodule Walkman do
   """
   @spec set_mode(mode :: :normal | :integration) :: :ok
   def set_mode(mode) when mode in [:normal, :integration] do
-    :ok = Registry.put_meta(Walkman.TestCaseRegistry, :mode, mode)
+    :ok = Registry.put_meta(Walkman.TapeRegistry, :mode, mode)
   end
 
   @doc """
@@ -160,7 +160,7 @@ defmodule Walkman do
 
   @doc false
   def mode() do
-    case Registry.meta(Walkman.TestCaseRegistry, :mode) do
+    case Registry.meta(Walkman.TapeRegistry, :mode) do
       {:ok, :integration} ->
         :integration
 
@@ -232,7 +232,7 @@ defmodule Walkman do
   end
 
   defp fetch_walkman_tape(test_pid) do
-    case Registry.lookup(Walkman.TestCaseRegistry, test_pid) do
+    case Registry.lookup(Walkman.TapeRegistry, test_pid) do
       [{walkman_tape, _value}] ->
         {:ok, walkman_tape}
 
