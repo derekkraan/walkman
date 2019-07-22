@@ -9,8 +9,8 @@ defmodule ShareTapeTest do
       spawn_link(fn ->
         Walkman.share_tape(test_pid, self())
 
-        assert {:ok, "allowance echo"} = TestEchoWrapper.echo("allowance echo")
-        refute_receive("allowance echo", 10)
+        assert {:ok, "share echo"} = TestEchoWrapper.echo("share echo")
+        refute_receive("share echo", 10)
         send(test_pid, :done)
       end)
 
