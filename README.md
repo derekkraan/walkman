@@ -1,6 +1,6 @@
 # Walkman
 
-[![Hex pm](http://img.shields.io/hexpm/v/walkman.svg?style=flat)](https://hex.pm/packages/walkman) [![CircleCI badge](https://circleci.com/gh/derekkraan/walkman.png?circle-token=:circle-token)](https://circleci.com/gh/derekkraan/walkman)
+[![Hex pm](http://img.shields.io/hexpm/v/walkman.svg?style=flat)](https://hex.pm/packages/walkman) [![CircleCI badge](https://circleci.com/gh/derekkraan/walkman.svg?style=svg&circle-token=:circle-token)](https://circleci.com/gh/derekkraan/walkman)
 
 Walkman was inspired by Ruby's VCR. While VCR deals explicitely with HTTP requests, Walkman is useful for performing automated mocking of any module.
 
