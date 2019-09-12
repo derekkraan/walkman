@@ -54,7 +54,7 @@ To generate new fixtures, just remove the "tapes" you want to regenerate and re-
 
 ## Fixture file format
 
-Fixtures are saved in Erlang's binary [External Term Format])http://erlang.org/doc/apps/erts/erl_ext_dist.html), which most editors won't be able to open correctly. If you want to see what exactly has been recorded, you can use `:erlang.binary_to_term()` to parse the file contents back into readable Elixir terms.
+Fixtures are saved in Erlang's binary [External Term Format](http://erlang.org/doc/apps/erts/erl_ext_dist.html), which most editors won't be able to open correctly. If you want to see what exactly has been recorded, you can use `:erlang.binary_to_term()` to parse the file contents back into readable Elixir terms.
 
 ```elixir
 File.read!("path/to/fixture") |> :erlang.binary_to_term()
