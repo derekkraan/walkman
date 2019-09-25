@@ -31,9 +31,23 @@ Wrap `MyModule` with `MyModuleWrapper`.
 ```elixir
 # test/support/my_module_wrapper.ex
 
-defmodule MyModuleWrapper do
-  use Walkman.Wrapper, MyModule
+require Walkman
+
+Walkman.def_stub(MyModuleWrapper, for: MyModule)
+```
+
+Lastly, in `mix.exs`, add `test/support/` to the paths that need to be compiled in `:test`.
+
+```elixir
+def project do
+  [
+    # Everything that usually goes here
+    elixirc_paths: elixirc_paths(Mix.env())
+  ]
 end
+
+defp elixirc_paths(:test), do: ["lib", "test/support"]
+defp elixirc_paths(_), do: ["lib"]
 ```
 
 Now you can use "tapes" in your tests.
