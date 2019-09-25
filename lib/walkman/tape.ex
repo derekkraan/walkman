@@ -76,7 +76,7 @@ defmodule Walkman.Tape do
     end)
     |> case do
       true -> state
-      false -> %{state | replay_mode: :record, tests: [], module_md5s: []}
+      false -> %{state | replay_mode: :record, tests: [], module_md5s: %{}}
     end
   end
 
