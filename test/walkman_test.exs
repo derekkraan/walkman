@@ -46,4 +46,12 @@ defmodule WalkmanTest do
 
     refute File.exists?("test/fixtures/walkman/no_fixture")
   end
+
+  test "does not fail silently on RuntimeError" do
+    assert_raise(RuntimeError, fn ->
+      Walkman.use_tape "run_time_error" do
+        raise "Error"
+      end
+    end)
+  end
 end

@@ -130,6 +130,7 @@ defmodule Walkman do
       rescue
         e in RuntimeError ->
           :ok = GenServer.call(pid, :cancel)
+          raise e
       else
         _ ->
           :ok = GenServer.call(pid, :finish)
