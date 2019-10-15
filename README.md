@@ -74,6 +74,21 @@ Fixtures are saved in Erlang's binary [External Term Format](http://erlang.org/d
 File.read!("path/to/fixture") |> :erlang.binary_to_term()
 ```
 
+## Changing default tape mode
+
+By default, all Walkman tapes are only available at the scope of the current process.
+To make the tape available to another process you have to set `global: true`:
+```elixir
+test "MyModule" do
+  Walkman.use_tape "my wrapper tape", global: true do
+    # test code that uses `MyModule` underwater
+  end
+end
+```
+
+The default behaviour can be changed on `config/test.exs`:
+`config :walkman, global: true`
+
 ## Running "integration" specs
 
 If you set Walkman to `:integration` mode then it will pass all function calls through to the wrapped module (instead of using the fixtures).

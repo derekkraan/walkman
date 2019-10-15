@@ -34,18 +34,22 @@ defmodule Walkman.Tape do
     GenServer.start_link(__MODULE__, options)
   end
 
+  defp register_tape(true, _test_pid) do
+    Registry.register(Walkman.TapeRegistry, :global, nil)
+  end
+
+  defp register_tape(false, test_pid) when is_pid(test_pid) do
+    Registry.register(Walkman.TapeRegistry, test_pid, nil)
+  end
+
   def init(options) do
     mode = Keyword.get(options, :mode, :normal)
     tape_id = Keyword.fetch!(options, :tape_id)
     test_pid = Keyword.fetch!(options, :test_pid)
     preserve_order = Keyword.get(options, :preserve_order, true)
-    global = Keyword.get(options, :global, false)
+    global = Keyword.get(options, :global, Application.get_env(:walkman, :global, false))
 
-    if global do
-      Registry.register(Walkman.TapeRegistry, :global, nil)
-    else
-      Registry.register(Walkman.TapeRegistry, test_pid, nil)
-    end
+    register_tape(global, test_pid)
 
     state =
       %__MODULE__{mode: mode, tape_id: tape_id, preserve_order: preserve_order}
