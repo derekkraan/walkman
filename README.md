@@ -76,8 +76,9 @@ File.read!("path/to/fixture") |> :erlang.binary_to_term()
 
 ## Changing default tape mode
 
-By default, all Walkman tapes are only available at the scope of the current process.
-To make the tape available to another process you have to set `global: true`:
+By default, all Walkman tapes are only available in the scope of the current process.
+To make the tape available to other processes you have to set `global: true`:
+
 ```elixir
 test "MyModule" do
   Walkman.use_tape "my wrapper tape", global: true do
@@ -86,7 +87,8 @@ test "MyModule" do
 end
 ```
 
-The default behaviour can be changed on `config/test.exs`:
+The default behaviour can be changed in `config/test.exs`:
+
 `config :walkman, global: true`
 
 ## Running "integration" specs
