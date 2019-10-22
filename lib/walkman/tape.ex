@@ -35,11 +35,11 @@ defmodule Walkman.Tape do
   end
 
   defp register_tape(true, _test_pid) do
-    Registry.register(Walkman.TapeRegistry, :global, nil)
+    {:ok, _pid} = Registry.register(Walkman.TapeRegistry, :global, nil)
   end
 
   defp register_tape(false, test_pid) when is_pid(test_pid) do
-    Registry.register(Walkman.TapeRegistry, test_pid, nil)
+    {:ok, _pid} = Registry.register(Walkman.TapeRegistry, test_pid, nil)
   end
 
   def init(options) do
