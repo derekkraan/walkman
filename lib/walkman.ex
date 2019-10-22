@@ -128,7 +128,7 @@ defmodule Walkman do
       try do
         unquote(block)
       rescue
-        e in RuntimeError ->
+        e ->
           :ok = GenServer.call(pid, :cancel)
           raise e
       else
