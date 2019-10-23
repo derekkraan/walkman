@@ -1,5 +1,6 @@
 defmodule Walkman.Tape do
   use GenServer
+  require Logger
 
   @moduledoc false
 
@@ -8,9 +9,12 @@ defmodule Walkman.Tape do
             tape_id: nil,
             tests: [],
             preserve_order: true,
+            module_changes: :rerecord,
             module_md5s: %{}
 
   @type mode :: :normal | :integration
+
+  @type module_changes :: :ignore | :rerecord | :warn
 
   @type replay_mode :: :replay | :record
 
@@ -21,6 +25,7 @@ defmodule Walkman.Tape do
           mode: mode(),
           test_pid: pid(),
           global: boolean(),
+          module_changes: module_changes(),
           preserve_order: boolean()
         ]
 
@@ -49,10 +54,22 @@ defmodule Walkman.Tape do
     preserve_order = Keyword.get(options, :preserve_order, true)
     global = Keyword.get(options, :global, Application.get_env(:walkman, :global, false))
 
+    module_changes =
+      Keyword.get(
+        options,
+        :module_changes,
+        Application.get_env(:walkman, :module_changes, :rerecord)
+      )
+
     register_tape(global, test_pid)
 
     state =
-      %__MODULE__{mode: mode, tape_id: tape_id, preserve_order: preserve_order}
+      %__MODULE__{
+        mode: mode,
+        tape_id: tape_id,
+        preserve_order: preserve_order,
+        module_changes: module_changes
+      }
       |> init_tests()
 
     {:ok, state}
@@ -73,14 +90,32 @@ defmodule Walkman.Tape do
     end
   end
 
+  defp check_module_md5s(%{module_changes: :ignore} = state) do
+    state
+  end
+
   # change to record mode if any of the module md5s don't match
-  defp check_module_md5s(state) do
-    Enum.all?(state.module_md5s, fn {module, md5} ->
-      md5 == module.__info__(:md5)
-    end)
-    |> case do
-      true -> state
-      false -> %{state | replay_mode: :record, tests: [], module_md5s: %{}}
+  defp check_module_md5s(%{module_changes: module_changes} = state) do
+    module_with_changes =
+      Enum.find(state.module_md5s, fn {module, md5} ->
+        md5 != module.__info__(:md5)
+      end)
+
+    case {module_changes, module_with_changes} do
+      {_module_changes, nil} ->
+        state
+
+      {:rerecord, {module, _md5}} ->
+        "Re-recording #{state.tape_id} due to changes in #{module.__info__(:module)}."
+        |> Logger.info()
+
+        %{state | replay_mode: :record, tests: [], module_md5s: %{}}
+
+      {:warn, {module, _md5}} ->
+        "Module #{module.__info__(:module)} has changed and tape #{state.tape_id} should be re-recorded."
+        |> Logger.warn()
+
+        state
     end
   end
 
