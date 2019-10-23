@@ -91,6 +91,29 @@ The default behaviour can be changed in `config/test.exs`:
 
 `config :walkman, global: true`
 
+## Disabling module md5 checks
+
+By default Walkman re-record tapes every time the wrapped module changes and this is done by storing the md5 of the module on the tape.
+
+To change this behaviour the option `module_changes` should be set to `:ignore` or `:warn` which can be done per tape as in the example below:
+
+```elixir
+test "MyModule" do
+  Walkman.use_tape "my wrapper tape", module_changes: :warn do
+    # test code that uses `MyModule` underwater
+  end
+end
+```
+
+The module_changes option accepts the following values:
+- `:rerecord` - if the recorded module changes the tape is automatically re-recorded.
+- `:warn` - if the recorded module changes a warning is logged.
+- `:ignore` - It ignores any changes in the recorded module
+
+The default behaviour can also be changed in `config/test.exs`:
+
+`config :walkman, module_changes: :ignore`
+
 ## Running "integration" specs
 
 If you set Walkman to `:integration` mode then it will pass all function calls through to the wrapped module (instead of using the fixtures).
