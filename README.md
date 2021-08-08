@@ -139,4 +139,4 @@ end
 
 ## Contributing
 
-Note that if you want to run Walkman's tests locally, you'll need to be running Elixir v1.9.1 and Erlang v22.1.
+Note that if you want to run Walkman's tests locally, you'll need to be running Elixir v1.12 and Erlang v24.
